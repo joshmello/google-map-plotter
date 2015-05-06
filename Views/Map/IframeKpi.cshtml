@@ -1,0 +1,399 @@
+﻿@using FSGEMappingTool.Models.Domain
+@model FSGEMappingTool.Models.Views.ClientMapKpiView
+@using Newtonsoft.Json
+@{
+    ViewBag.Title = "Iframe KPI View";
+    Layout = "~/Views/Shared/_IframeMapLayout.cshtml";
+    int limit = Convert.ToInt32(Model.RecordLimit);
+    int idx = 0;
+}
+
+<!-- referrer: @Request.UrlReferrer.Host -->
+<div class="contentWrap">
+    
+@if (Model.ShowViewModeSwitcher)
+{
+    <div id="mapviewswitcher">
+        <div class="pull-left">Map View:&nbsp;</div>
+        <div class="btn-group btn-group-xs">
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                KPI
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+                <li><a href="/Map/@Model.ClientId/Iframe">Switch to Standard View</a></li>
+            </ul>
+        </div>
+    </div>
+}
+    
+    <div id="map"></div>
+
+
+    @using (Html.BeginForm("IframeKpi", "Map", FormMethod.Get, new Dictionary<string, object> { { "class", "form-inline" } }))
+    {
+
+
+        <div class="filter-form-wrap" style="padding-top:5px;">
+            <div class="form-group">
+                <label class="" for="kpi">KPI</label>
+                <select name="kpi" class="form-control input-sm">
+                    @foreach (Kpi item in Model.Kpis)
+                    {
+                        <option @(item.KpiId.ToString() == Model.SelectedKpiId ? "selected=\"selected\"" : "") value="@item.KpiId">@item.KpiName</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="" for="mode">View Mode:</label>
+                <select name="mode" class="form-control input-sm">
+                    <option value="">Raw</option>
+                    <option value="normalized" @(Model.KPIViewMode == "normalized" ? "selected=\"selected\"" : "")>Normalized per Sq/Ft.</option>
+                </select>
+            </div>
+        
+            <button type="submit" class="btn btn-success btn-sm">Go</button>
+        </div>
+    }
+
+    @*<div>@Model.SelectedKpiName</div>*@
+    
+    
+    @if (Model.ClientKpis != null)
+    {
+        
+
+    <table class="table">
+        <tr>
+            <td>
+                <!--tops-->
+                <div class="panel panel-default">
+                    <div class="panel-heading">Top Stores</div>
+                    <div class="panel-body">
+                        <table class="table table-striped table-hover table-bordered table-condensed">
+                            <thead>
+                                <tr>
+                                    <td>Store ID</td>
+                                    <td>Value</td>
+                                    <td>Rank</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+
+                                @{ idx = 0; }
+                                @foreach (IDictionary<string, object> row in Model.ClientKpis.Take(limit))
+                                {
+                                    <tr onclick="showMarkerInfo(@idx);">
+                                        <td><a id='row' onclick="return false;" href="#">@row["site_id"]</a></td>
+                                        <td class="success">@Convert.ToDouble(row[Model.SelectedKpiDataColumn]).ToString("0.##")</td>
+                                        <td class="success">@row[Model.SelectedKpiRankColumn]</td>
+                                    </tr>
+                                    idx++;
+                                }
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <!--bottoms-->
+                <div class="panel panel-default">
+                    <div class="panel-heading">Bottom Stores</div>
+                    <div class="panel-body">
+                        <table class="table table-striped table-hover table-bordered table-condensed">
+                            <thead>
+                                <tr>
+                                    <td>Store ID</td>
+                                    <td>Value</td>
+                                    <td>Rank</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (IDictionary<string, object> row in Model.ClientKpis.Skip(limit))
+                                {
+                                    <tr onclick="showMarkerInfo(@idx);">
+                                        <td><a id='row' onclick="return false;" href="#">@row["site_id"]</a></td>
+                                        <td class="danger">@Convert.ToDouble(row[Model.SelectedKpiDataColumn]).ToString("0.##")</td>
+                                        <td class="danger">@row[Model.SelectedKpiRankColumn]</td>
+                                    </tr>
+                                    idx++;
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+
+        }
+        else
+        {
+            
+            <div>No Values for selected KPI found.</div>
+        }
+    
+    
+        @*
+        <div class="row">
+            <div class="col-md-4">
+
+                <div class="panel panel-default">
+                    <div class="panel-heading">Store Details</div>
+                    <div class="panel-body">
+                        Select a map marker or a click on a Store Id to the left to see the details for that store here.
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        *@
+    
+
+
+
+
+</div>
+
+<script type="text/javascript">
+
+    var dataset = @Html.Raw(JsonConvert.SerializeObject(Model.ClientKpis));
+    var icons = ["FF4050","62D962"];
+    var displayConfigs = @Html.Raw(JsonConvert.SerializeObject(Model.DisplayConfigs()));
+    var kpis = @Html.Raw(JsonConvert.SerializeObject(Model.Kpis));
+    var selectedKpiName = "@Model.SelectedKpiName";
+    var selectedKpiId = "@Model.SelectedKpiId";
+    var markers = [];
+
+       
+        var mapObj = {};
+        // Create an empty LatLngBounds object
+        mapObj.fullBounds = new google.maps.LatLngBounds();
+
+        function getMarkers() {
+            var batch = [];
+            //alert(filteredDataset.length);
+            $.each(dataset, function(i, item) {
+                createMarker(item);
+            });
+
+            return batch;
+        }
+
+        function createMarker(item) {
+            //var contentString = item.client_id + " : " + item.site_id + " HTML";
+            var idx;
+
+            if (markers.length <= 9) {
+                idx = markers.length + 1;
+            } else {
+                idx = (markers.length + 1) - 10;
+            }
+
+            var pos = new google.maps.LatLng(item.lat, item.lng);
+            var marker = new google.maps.Marker({
+                position: pos,
+                map: mapObj.map,
+                icon: getIcon(item.istop, idx),
+                zIndex: Math.round(pos.lat() * -100000) << 5,
+                title: item.client_id + " : " + item.site_id
+            });
+
+            markers.push(marker);
+
+            //marker.setAnimation(google.maps.Animation.DROP);
+            // ensure that the map contains the marker
+            mapObj.fullBounds.extend(pos);
+            mapObj.map.fitBounds(mapObj.fullBounds);
+    
+            google.maps.event.addListener(marker, 'click', function() {
+                infowindow.setContent(formatContent(item));
+                infowindow.open(mapObj.map, marker);
+            });
+
+            
+        }
+
+    function showMarkerInfo(idx) {
+        
+        google.maps.event.trigger(markers[idx], 'click', {});
+
+    }
+
+
+        function formatContent(item) {
+            
+            //create empty string and then loop through display configs 
+            var contentString = "";
+
+            contentString += "<table style='width:300px;'>";
+            
+            //do site ID and address first
+            contentString += "<tr>";
+            
+            contentString += "<td style='padding-bottom:10px;padding-right:15px;' nowrap='nowrap'>";
+            contentString += "<h5 style='margin-bottom:5px;'>Site: " + item.site_id + "</h5>";
+            contentString += "<div>";
+            contentString += item.address + "<br />";
+            contentString += item.city + ", " + item.state + " " + item.zip;
+            contentString += "</div>";
+            contentString += "</td>";
+            
+            contentString += "<td style='padding-bottom:10px;'>";
+
+            //now ranking
+            contentString += "<h5 style='margin-bottom:5px;'>KPI: " + selectedKpiName + "</h5>";
+            var colorClass;
+            if (item.istop) {
+                colorClass = "success";
+            } else {
+                colorClass = "danger";
+            }
+            var val = item["kpi_" + selectedKpiId + "_value"];
+            var valPerArea = item["kpi_" + selectedKpiId + "_value_per_area"];
+            if (val == null) {
+                val = 0;
+            }
+            if (valPerArea == null) {
+                valPerArea = 0;
+            }
+
+            contentString += "<div style='font-weight:bold;width:75px;display:inline-block;'>Raw:</div> " + val.toFixed(2) + "&nbsp;&nbsp;&nbsp;<span class='label label-" + colorClass + "'>" + item["kpi_" + selectedKpiId + "_rank"] + "</span><br />";
+            
+            contentString += "<div style='font-weight:bold;width:75px;display:inline-block'>Normalized:</div> " + valPerArea.toFixed(2) + "&nbsp;&nbsp;&nbsp;<span class='label label-" + colorClass + "'>" + item["kpi_" + selectedKpiId + "_rank_per_area"] + "</span>";
+            
+            contentString += "</td>";
+            contentString += "</tr>";
+            
+            //contentString += "</td></tr>";
+
+            
+            $.each(displayConfigs, function(i, config) {
+                //alert(item.lat);
+                //do label
+
+                contentString += "<tr><td nowrap='nowrap' style='width:100px;font-weight:bold;padding-right:5px;'>";
+                if (item[config.DBColumnName]!=null){
+                    if (config.DisplayName != "") {
+                        contentString += config.DisplayName + ": ";
+                    } else {
+                        contentString += config.DBColumnName + ": ";
+                    }
+                }
+                contentString += "</td><td>";
+
+                //contentString += "</span>";
+                //now do value - check for format string
+                //now do value and check for format string do not display value if null
+                if (item[config.DBColumnName]!=null){
+                    if (config.FormatString != "") {
+                        contentString += config.FormatString.replace('{0}', item[config.DBColumnName]);
+                    } else {
+                        contentString += item[config.DBColumnName];
+                    }
+                }
+                contentString += "</td></tr>";
+            });
+
+            contentString += "</table>";
+
+            return contentString;
+
+        }
+
+
+ 
+        function ViewModel() {
+            // reasign this
+            var self = this;
+            
+            self.addresses = ko.observableArray([]);
+             
+            self.isData = ko.computed(function(){
+                if(self.addresses().length > 0){
+                    var mapBounds = cm.koThree.map.getBounds();
+                    // once the data is loaded, fit the map to the bounds
+                    cm.koThree.map.fitBounds(cm.koThree.fullBounds);
+                    return true;
+                }else{
+                    return false;
+                }
+            });
+
+            self.showAddress = function(item) {
+                item.enableMarker();
+            };
+
+            self.changeMarkerIcon = function(item) {
+                item.changeMarkerIcon();
+            };
+
+            self.removeAddress = function(item) {
+                item.disableMarker();
+            };
+ 
+        }
+
+        function getIcon(val, idx) {
+            var color = "";
+            if (val) {
+                color =  icons[1];
+            } else {
+                color =  icons[0];
+            }
+            //return "http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2%7C" + color + "|000000";
+            return "//chart.googleapis.com/chart?chst=d_map_pin_letter&chld=" + idx + "%7C" + color + "|000000";
+
+        }
+ 
+        createMap = function() {
+            var myOptions = {
+                zoom: 6,
+                center: new google.maps.LatLng(40, -95),
+                mapTypeId: 'roadmap',
+                panControl: false,
+                zoomControl: true,
+                zoomControlOptions: {
+                    style: google.maps.ZoomControlStyle.LARGE,
+                    position: google.maps.ControlPosition.LEFT_CENTER
+                },
+                mapTypeControl: true,
+                scaleControl: true,
+                streetViewControl: true,
+                overviewMapControl: false
+            };
+            
+            mapObj.map = new google.maps.Map(jQuery('#map')[0], myOptions);
+            
+            var mcOptions = {
+                gridSize: 50,
+                maxZoom: 15
+            };
+
+            //mc = new MarkerClusterer(mapObj.map, [], mcOptions);
+            google.maps.event.addListener(mapObj.map, 'click', function() {
+                infowindow.close();
+            });
+            //now setup markers
+            getMarkers();
+        };
+
+        var infowindow = new google.maps.InfoWindow({
+            size: new google.maps.Size(450, 150)
+        });
+ 
+        vm = new ViewModel();
+        createMap();
+        ko.applyBindings(vm);
+
+
+</script>
+
+
+
+
+
+
+

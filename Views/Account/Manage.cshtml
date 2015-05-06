@@ -1,0 +1,16 @@
+﻿@model FSGEMappingTool.Models.SetPasswordModel
+@{
+    ViewBag.Title = "Manage User";
+}
+
+<hgroup class="title">
+    <h2>@ViewBag.Title</h2>
+</hgroup>
+
+<p class="message-success">@Html.Raw(ViewBag.StatusMessage)</p>
+
+@Html.Partial("_SetPasswordPartial")
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}

@@ -1,0 +1,16 @@
+﻿@{
+    ViewBag.Title = "Map Preview";
+}
+
+<h2>Map Preview</h2>
+<div class="alert alert-info">
+    <strong>Map URLs for this Client:</strong>
+    <ul style="margin:10px 0px;">
+        <li><strong>Standard:</strong> https://maps.fsgenergy.com/Map/@ViewBag.clientId/Iframe</li>
+        <li><strong>KPI:</strong> https://maps.fsgenergy.com/Map/@ViewBag.clientId/IframeKpi</li>
+    </ul>
+    <p>If you would like to disable the for Standard/KPI view switcher, append the <strong>noswitch=1</strong> parameter to the url. Example:https://maps.fsgenergy.com/Map/@ViewBag.clientId/Iframe?noswitch=1</p>
+    <p>The domain for the site you are embedding the IFrame on must be in the list of approved domains.</p>
+</div>
+<iframe id="mapFrame" src="/Map/@ViewBag.clientId/Iframe" style="border: 0px solid #000; width:100%; height:400px; padding: 0px; background: none repeat scroll 0% 0% transparent;" allowtransparency="true" frameborder="0" wmode="transparent" seamless="true" scrolling="no"></iframe>
+

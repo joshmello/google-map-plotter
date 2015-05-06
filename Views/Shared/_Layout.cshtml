@@ -1,0 +1,66 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>@ViewBag.Title</title>
+        <link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        @Styles.Render("~/Content/css")
+        @Scripts.Render("~/bundles/modernizr")
+        <!-- Bootstrap -->
+        <link href="/Content/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <!-- navbar -->
+        <div class="navbar-wrapper navbar-default">
+            <div class="container">
+
+                <div class="navbar navbar-static-top" role="navigation">
+                    <div class="container">
+                        <div class="navbar-header">
+                            <a class="navbar-brand" href="/client">
+                                <img src="/Images/fsg-logo.png" alt="FSG Logo" height="50" />
+                            </a>
+                        </div>
+                        @if (User.Identity.Name != "") { 
+                            <div class="navbar-collapse collapse pull-right" style='margin-top:15px;'>
+                                <p class="small">You're logged in as <strong>@User.Identity.Name</strong>. <a href="/Account/Logoff">Logout</a></p>
+                                <ul class="nav navbar-nav pull-right">
+                                    <li class="active"><a href="/client/">Client List</a></li>
+                                    <li class=""><a href="/Account/List">Users</a></li>
+                                </ul>
+                            
+                            </div>
+                        }
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <!-- /navbar -->
+        
+        <!-- body -->
+        <div id="content-body" class="container">
+            
+            @RenderSection("featured", required: false)
+            
+            @RenderBody()
+            
+        </div>
+        <!-- /body -->
+        
+        <!-- footer -->
+        <footer id="footer" class="container">
+            
+                <div class="float-left">
+                    <p>&copy; @DateTime.Now.Year - Facility Solutions Group</p>
+                </div>
+            
+        </footer>
+        <!-- /footer -->
+
+        @Scripts.Render("~/bundles/jquery")
+        <script src="/Scripts/bootstrap.min.js"></script>
+        @RenderSection("scripts", required: false)
+    </body>
+</html>

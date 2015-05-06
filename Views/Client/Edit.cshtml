@@ -1,0 +1,63 @@
+﻿@model FSGEMappingTool.Models.Domain.Client
+@{
+    ViewBag.Title = "Edit";
+}
+
+<h2>Edit Client</h2>
+<div class="alert alert-info">
+    <strong>Please Note:</strong> Edits to the <strong>Client Id</strong> and <strong>DB Table Name</strong> can break the
+     client map currently in production. Please take caution when editing those two fields. 
+</div>
+@using (Html.BeginForm("Edit", "Client", FormMethod.Post))
+{
+    <div class="row">
+        <div class="col-md-6">
+            <table class="table table-striped table-hover table-bordered">
+                <tbody>
+                    <tr>
+                        <td>Display Name:</td>
+                        <td>
+                            @Html.EditorFor(m => m.DisplayName)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Client Id:</td>
+                        <td>
+                            @Model.ClientId
+                            <input type="hidden" name="ClientId" value="@Model.ClientId" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>DB Table Name:</td>
+                        <td>@Html.EditorFor(m => m.DBTableName)</td>
+                    </tr>
+                    <tr>
+                        <td>Data Refresh Needed:</td>
+                        <td><input type="checkbox" name="DataRefreshNeeded" class="checkbox check-box" checked="@Model.DataRefreshNeeded" /></td>
+                    </tr>
+                    <tr>
+                        <td>Google Sheet Name:</td>
+                        <td>@Html.EditorFor(m => m.SpreadsheetLocation)</td>
+                    </tr>
+                    <tr>
+                        <td>Data Last Updated:</td>
+                        <td>@Model.DataLastUpdated</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="pull-right">
+                <button type="submit" class="btn btn-success"><span class="glyphicon glyphicon-save"></span>&nbsp;Save</button>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-default" onclick="window.history.back()"><span class="glyphicon glyphicon-arrow-left"></span>&nbsp;Cancel</button>
+            </div>
+        
+        </div>
+
+        <div class="col-md-4">
+        
+        </div>
+
+    </div>
+}

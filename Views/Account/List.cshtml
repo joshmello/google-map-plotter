@@ -1,0 +1,54 @@
+﻿@using FSGEMappingTool.Models
+@model IEnumerable<UserProfile>
+@{
+    ViewBag.Title = "List";
+}
+
+<h2>User Accounts</h2>
+<div class="pull-right" style="margin-top:-40px; margin-bottom:10px;">
+    <button type="submit" class="btn btn-success" onclick="window.location = '/Account/Register';"><span class="glyphicon glyphicon-plus"></span>&nbsp;Add User</button>
+</div>
+<div style="min-height: 400px;">
+    <table class="table table-striped table-hover table-bordered">
+        <thead>
+            <tr>
+                <th>User ID</th>
+                <th>User Name</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in Model)
+            {
+                <tr>
+                    <td>@user.UserId</td>
+                    <td>@user.UserName</td>
+                    <td>
+                        
+                        @if (user.UserName.ToLower() != "admin")
+                        {
+                            @*only admin can change the admin pass*@ 
+                            @Html.ActionLink("Set Password", "Manage", new { id = user.UserName }, new { @class = "btn btn-xs btn-primary" })
+                            @:&nbsp; &nbsp;
+                            @Html.ActionLink("Delete", "Delete", new {id = user.UserName}, new {@class = "btn btn-xs btn-danger", @onclick = "return confirm('Are you sure you want to delete this user?');"})
+                            
+                        }
+                        else
+                        {
+                            if (User.Identity.Name.ToLower() == "admin")
+                            {
+                                @*only admin can change the admin pass*@ 
+                                @Html.ActionLink("Set Password", "Manage", new { id = user.UserName }, new { @class = "btn btn-xs btn-primary" })
+                                @:&nbsp; &nbsp;
+                                @Html.ActionLink("Delete", "Delete", new {id = user.UserName}, new {@class = "btn btn-xs btn-danger", @onclick = "return confirm('Are you sure you want to delete this user?');"})
+                            }
+                        }
+                        
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+

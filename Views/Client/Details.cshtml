@@ -1,0 +1,52 @@
+﻿@model FSGEMappingTool.Models.Domain.Client
+@{
+    ViewBag.Title = "Client Details";
+}
+
+<h2>Client Details</h2>
+
+<div class="row">
+    <div class="col-md-8">
+        <table class="table table-striped table-hover table-bordered">
+            <tbody>
+                <tr>
+                    <td>Display Name:</td>
+                    <td>@Model.DisplayName</td>
+                </tr>
+                <tr>
+                    <td>Client Id:</td>
+                    <td>@Model.ClientId</td>
+                </tr>
+                <tr>
+                    <td>DB Table Name:</td>
+                    <td>@Model.DBTableName</td>
+                </tr>
+                <tr>
+                    <td>Data Refesh Needed:</td>
+                    <td>@Model.DataRefreshNeeded</td>
+                </tr>
+                <tr>
+                    <td>Google Sheet Name:</td>
+                    <td>@Model.SpreadsheetLocation</td>
+                </tr>
+                <tr>
+                    <td>Data Last Updated:</td>
+                    <td>@Model.DataLastUpdated</td>
+                </tr>
+            </tbody>
+        </table>
+        @Html.ActionLink("Edit Client Details", "Edit", new { id = Model.ClientId }, new { @class = "btn btn-default btn-primary" })
+    </div>
+    
+    <div class="col-md-4">
+        <a href="/client/@Model.ClientId/DatasetConfig" class="btn btn-primary btn-block"><span class="glyphicon glyphicon-cog"></span>&nbsp;&nbsp;&nbsp;Edit Dataset Configuration</a>
+        <a href="/client/@Model.ClientId/Dataset" class="btn btn-info btn-block"><span class="glyphicon glyphicon-search"></span>&nbsp;&nbsp;&nbsp;View Dataset</a>
+        <a href="/client/@Model.ClientId/KPIs" class="btn btn-info btn-block"><span class="glyphicon glyphicon-usd"></span>&nbsp;&nbsp;&nbsp;View KPIs</a>
+    </div>
+
+</div>
+
+
+
+
+

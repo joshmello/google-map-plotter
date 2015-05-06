@@ -1,0 +1,623 @@
+﻿@model FSGEMappingTool.Models.Views.ClientMapView
+@using FSGEMappingTool.Models.Domain
+@using Newtonsoft.Json
+@{
+    ViewBag.Title = "Iframe";
+    Layout = "~/Views/Shared/_IframeMapLayout.cshtml";
+    int idx = 0;
+}
+
+
+<!-- referrer: @Request.UrlReferrer.Host -->
+<div class="contentWrap">
+    
+    <div class="filter-form-wrap">
+        
+        <div class="row">
+            <table style="width:100%;margin-top:5px;margin-bottom:0px;">
+                <tr>
+                    <td style="padding: 0px 10px;">
+                        @if (Model.ShowViewModeSwitcher)
+                        {
+                            <div id="mapviewswitcher">
+                                <div class="pull-left">Map View:&nbsp;</div>
+                                <div class="btn-group btn-group-xs">
+                                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                                        Standard
+                                        <span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="/Map/@Model.ClientId/IframeKpi">Switch to KPI View</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        }
+                    </td>
+                    <td width="350" style="padding: 0px 10px;">
+                        <div id="quickSearch">
+                            <div class="form">
+                                <div class="form-group" style="padding:0px;margin:0px;">
+                                    <div class="ui-widget">
+                                        <input type="text" class="form-control input-sm" id="srchBox" placeholder="Quick Search">
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+    </div>
+
+    <div class="row">
+        <div class="col-md-12"><div id="map"></div></div>
+    </div>
+
+ 
+    <div class="filter-form-wrap">
+        @using (Html.BeginForm("Iframe", "Map", FormMethod.Get, new Dictionary<string, object> { { "class", "form-inline" }, { "data-bind", "submit: setFilterOptions" } }))
+        {
+            <div class="row">
+                <div class="col-md-12">
+                    <table class="table" style="margin-bottom:0px;">
+                        <tr>
+                            <td style="border-width:0px;padding:5px 0px;width:250px;">
+                                <div class="form-group">
+                                    <label class="" for="kpi">Filter:</label>
+                                    <select name="filterGroup" id="filterGroup" data-bind="options: availableFilters, optionsText: 'DisplayName',optionsValue:'ColumnName',value: selectedFilterColumn, event: {change: setFilterOptions}" class="form-control input-sm" style="height:25px;line-height:20px;padding:3px 10px;"></select>
+                                    @*<button type="submit" class="btn btn-success btn-xs">Go</button>*@
+                                </div>
+                            </td>
+                            <td style="border-width:0px;padding:5px 0px;">
+                                @*knockout templates here for both dropdown selector and selected filters array*@
+
+                                <div id="filterItems2" data-bind="foreach: activeFilters">
+
+                                    <div class="checkbox">
+                                        <label class="checkbox-inline">
+                                            <input type="checkbox" onclick="vm.addFilter(this)" data-bind="value: Value, checked: vm.filterIsSelected(vm.selectedFilterColumn(),Value), attr : {count: Count, id: 'filter_' + $index, columnname : vm.selectedFilterColumn(), filtervalue : Value }"> <span data-bind="text: Value"></span> <img data-bind="attr:{src:getIcon(Value), index:$index}" height="20" style="vertical-align:top;" />
+                                        </label>
+                                    </div>
+
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+
+
+
+                </div>
+
+            </div>
+            
+            <div class="row">
+                <div class="col-md-12">
+                    Selected Filters:
+                    <div id="filterItems2" style="display:inline-block;" data-bind="foreach: selectedFilters">
+
+                        <button type="button" class="btn btn-default btn-xs" onclick="vm.removeFilter(this);" data-bind="attr : {filtervalue: filtervalue, columnname:columnname, index: $index}">
+                            <span class="glyphicon glyphicon-remove"></span>
+                            <span data-bind="text: columnname + ':' + filtervalue"></span>
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+            
+            
+        }
+                   
+    </div>
+    
+
+
+    <script type="text/javascript">
+
+    var dataset = @Html.Raw(JsonConvert.SerializeObject(Model.DataRows));
+    var filteredDataset = [];
+    filteredDataset = dataset;
+
+    var gAvailableFilters = [];
+
+    var mapObj = {};
+    // Create an empty LatLngBounds object
+    mapObj.fullBounds = new google.maps.LatLngBounds();
+
+    var displayConfigs = @Html.Raw(JsonConvert.SerializeObject(Model.DisplayConfigs()));
+    var currentFilter = '@Model.SelectedFilter';
+    var dataFilters = @Html.Raw(JsonConvert.SerializeObject(Model.DataFilters));
+
+    
+        var colors = ["0099ff","ff6666","ffff66","00ffff","00ff99","ff9933","ff99cc","9999ff","ffcc33","ccffff"];
+
+        var map = null;
+        var mc = null;
+        var markerArray = [];
+
+
+        createMap = function() {
+            var myOptions = {
+                zoom: 6,
+                center: new google.maps.LatLng(40, -95),
+                mapTypeId: 'roadmap',
+                panControl: false,
+                zoomControl: true,
+                zoomControlOptions: {
+                    style: google.maps.ZoomControlStyle.LARGE,
+                    position: google.maps.ControlPosition.LEFT_CENTER
+                },
+                mapTypeControl: true,
+                scaleControl: true,
+                streetViewControl: true,
+                overviewMapControl: false
+            };
+
+            mapObj.map = new google.maps.Map(jQuery('#map')[0], myOptions);
+
+            var mcOptions = {
+                gridSize: 50,
+                maxZoom: 15
+            };
+
+            mc = new MarkerClusterer(mapObj.map, [], mcOptions);
+            google.maps.event.addListener(mapObj.map, 'click', function() {
+                infowindow.close();
+            });
+            //now setup markers
+            setupMarkers();
+        };
+
+        var infowindow = new google.maps.InfoWindow({
+            //size: new google.maps.Size(150, 50)
+        });
+
+        function setupMarkers() {
+
+
+            if (mc != null) {
+                //    mc = null;
+                clearAllMarkers();
+            }
+            getMarkers();
+
+            mc.addMarkers(markerArray , true);
+            //mc.refresh();
+        }
+
+        function getMarkers() {
+            var batch = [];
+            //alert(filteredDataset.length);
+            $.each(filteredDataset, function(i, item) {
+                createMarker(item);
+            });
+
+            return batch;
+        }
+
+        function createMarker(item) {
+
+            var pos = new google.maps.LatLng(item.lat, item.lng);
+            var marker = new google.maps.Marker({
+                position: pos,
+                map: mapObj.map,
+                icon: getIcon(item[currentFilter]),
+                group: getCurrentGroupIndex(item[currentFilter]),
+                zIndex: Math.round(pos.lat() * -100000) << 5,
+                title: item.client_id + " : " + item.site_id
+            });
+
+            //marker.setAnimation(google.maps.Animation.DROP);
+            // ensure that the map contains the marker
+            mapObj.fullBounds.extend(pos);
+            mapObj.map.fitBounds(mapObj.fullBounds);
+
+            google.maps.event.addListener(marker, 'click', function() {
+                infowindow.setContent(formatContent(item));
+                infowindow.open(mapObj.map, marker);
+            });
+
+            markerArray.push(marker); //push local var marker into global array
+        }
+
+
+
+
+        function filterMarkers() {
+
+            //new logc here for handling ORs within the same filtergroup and then ANDs within others
+            //ex: want (item in Phase1 OR Phase2) AND (state in FL OR TX)
+            if (vm.selectedFilters().length > 0) {
+
+                //reset the filtered dataset
+                filteredDataset = [];
+
+                $.each(dataset, function(i, item) {
+                    var fCol = "";
+                    var fVal = "";
+                    var matchOnAll = false;
+
+                    //loop through the groups and check if there is at least one selected filter in that group
+                    //if so, get the values and do one big check for all items selected in that group
+                    //debugger;
+                    $.each(vm.availableFilterGroups(), function(j, filter) {
+                        fCol = filter.ColumnName;
+                        var matchOnCurrentFilter = false;
+
+                        //compare string must have at least one value (even if it's "compare")
+                        var compareString = vm.getValuesForSelectedFilter(fCol);
+
+                        if (compareString != "") {
+                            //escape for any value that may have special chars
+                            
+                            var regex = new RegExp("(" + compareString + ")", "i");
+
+                            if (regex.test("##" + item[fCol] + "##")) {
+                                matchOnCurrentFilter = true;
+                            } else {
+                                matchOnCurrentFilter = false;
+                            }
+
+                            //if you've checked the main string and have a match,
+                            //don't bother checkign for other
+                            if (matchOnCurrentFilter == false && compareString.toLowerCase().indexOf("other") >= 0) {
+
+                                debugger;
+                                //if you get this far with no match - check that other is selected and
+                                //test for any items with any value other than the values of the active filter
+                                //var vals = vm.activeFilterValues();
+                                var vals = vm.getAllValuesForFilterGroup(fCol);
+                                var reg2 = new RegExp("(" + vals + ")", "i");
+
+                                if (reg2.test("##" + item[fCol] + "##") == false) {
+                                    matchOnCurrentFilter = true;
+                                } else {
+                                    matchOnCurrentFilter = false;
+                                }
+
+                            }
+
+                            matchOnAll = matchOnCurrentFilter;
+
+                        } else {
+                            matchOnAll = true;
+                        }//if comparestring ""
+
+                        if (!matchOnAll) {
+                            //step out after first no match
+                            return false;
+                        }
+                    }); //each availableFilterGRoup
+
+
+                    //if it passes all criteria
+                    if (matchOnAll) {
+                        filteredDataset.push(item);
+                    }
+
+                });//each
+            } else {
+                //show all markers from full dataset
+                filteredDataset = dataset;
+            }
+
+
+            //now rebind markers
+            setupMarkers();
+            mc.redraw();
+
+        }
+
+        function clearAllMarkers()
+        {
+            mapObj.fullBounds = new google.maps.LatLngBounds();
+            // Unset all markers
+            var i = 0, l = markerArray.length;
+            for (i; i<l; i++) {
+                markerArray[i].setMap(null);
+            }
+            markerArray = [];
+            // Clears all clusters and markers from the clusterer.
+            mc.clearMarkers();
+        }
+
+        function getFilterValues() {
+            var filterstring = "";
+            var filters = [];
+            $("#filterItems input:checked").each(function() {
+                filterstring += $(this).attr("value") + ",";
+                filters.push($(this).attr("value"));
+            });
+            filterstring = filters.join("|");
+            return filterstring;
+        }
+
+        function escapeRegExp(string){
+            return string.replace(/([.*+?^${}()|\[\]\/\\])/g, "\\$1");
+        }
+
+
+        function formatContent(item) {
+
+            //create empty string and then loop through display configs
+            var contentString = "";
+
+            contentString += "<table style='width:350px;'>";
+
+            //do site ID and address first
+            contentString += "<tr><td colspan='2' style='padding-bottom:10px;'>";
+            contentString += "<h5 style='margin-bottom:5px;'>Site: " + item.site_id + "</h5>";
+            contentString += "<div>";
+            contentString += item.address + "<br />";
+            contentString += item.city + ", " + item.state + " " + item.zip;
+            contentString += "</div>";
+
+
+            contentString += "</td></tr>";
+
+
+            $.each(displayConfigs, function(i, config) {
+                //do label
+                contentString += "<tr><td nowrap='nowrap' style='width:100px;font-weight:bold;padding-right:5px;'>";
+
+                if (config.DisplayName != "") {
+                    contentString += config.DisplayName + ": ";
+                } else {
+                    contentString += config.DBColumnName + ": ";
+                }
+
+                contentString += "</td><td>";
+
+                //now do value and check for format string do not display value if null
+                if (item[config.DBColumnName]!=null){
+                    if (config.FormatString != "") {
+                        contentString += config.FormatString.replace('{0}', item[config.DBColumnName]);
+                    } else {
+                            contentString += item[config.DBColumnName];
+                    }
+                }
+                contentString += "</td></tr>";
+            });
+
+            contentString += "</table>";
+
+            return contentString;
+
+        }
+
+
+        var selectedFilter = function(col, val) {
+            this.columnname = col;
+            this.filtervalue = val;
+        };
+ 
+        // The view model is an abstract description of the state of the UI, but without any knowledge of the UI technology (HTML)
+        function ViewModel() {
+            // reasign this
+            var self = this;
+            self.selectedFilterColumn = ko.observable('@Model.SelectedFilter');
+        self.availableFilters = ko.observableArray(dataFilters.DataFilters);
+
+        self.selectedFilterOption = this.availableFilters.filter(function(item) {
+            return item.ColumnName==self.selectedFilterColumn();
+        });
+
+        self.activeFilters = ko.observableArray();
+        self.selectedFilters = ko.observableArray();
+
+        self.activeFilterValues = self.activeFilters.map(function(x) {
+            return x.Value;
+        });
+
+        self.availableFilterGroups = self.availableFilters.map(function(x) {
+            return { "DisplayName": x.DisplayName, "ColumnName": x.ColumnName };
+        });
+
+        self.getValuesForSelectedFilter = function(column) {
+            var filterstring = "";
+            var vals = [];
+            $.each(self.selectedFilters(), function(i, item) {
+                if (item.columnname==column) {
+                    //adding extra character to do exact match so no false partial matches
+                    //vals.push(item.filtervalue);
+                    vals.push("##" + escapeRegExp(item.filtervalue) + "##");
+                }
+            });
+            filterstring = vals.join("|");
+            return filterstring;
+        };
+
+        self.getAllValuesForFilterGroup = function(column) {
+            var filterstring = "";
+            var vals = [];
+            $.each(self.availableFilters(), function(i, filter) {
+                if (filter["ColumnName"] == column) {
+                    $.each(filter["FilterValues"], function(j, val) {
+                        //vals.push(val.Value);
+                        vals.push("##" + escapeRegExp(val.Value) + "##");
+                    });
+                }
+            });
+
+            filterstring = vals.join("|");
+            return filterstring;
+        };
+
+
+        self.setFilterOptions = function() {
+            var items = [];
+            var dd = $("#filterGroup");
+            currentFilter = dd.val();
+            self.selectedFilterColumn(dd.val());
+            //gAvailableFilters = [];
+
+            //alert(self.selectedFilterColumn());
+            self.activeFilters.removeAll();
+            $.each(self.availableFilters(), function(i, item) {
+                var regex = new RegExp("(" + self.selectedFilterColumn() + ")", "i");
+                if (regex.test(item["ColumnName"])) {
+                    $.each(item["FilterValues"], function(i, filter) {
+                        //this handles invalid "other"
+                        if (filter["Count"] != 0) {
+                            //now check to see if we already have a filter with same name (handles dupes with case sensitive values)
+                            //var alreadyHaveIt = false;
+                            //$.each(self.activeFilters(), function(x, fil) {
+                            //    if (fil["ColumnName"].toLowerCase==filter["ColumnName"].toLowerCase) {
+                            //        alreadyHaveIt = true;
+                            //    }
+                            //});
+                            //if (alreadyHaveIt==false) {
+
+                            //}
+
+                            self.activeFilters.push(filter);
+
+
+                        }
+                    });
+
+                }
+            });
+
+            filterMarkers();
+
+        };
+
+        self.addFilter = function(el) {
+            //el is the checkbox that was clicked
+            var fv = $(el).attr("filtervalue");
+            var col = $(el).attr("columnname");
+
+            var f = new selectedFilter(col, fv);
+
+            if (self.filterIsSelected(col, fv)==false) {
+                self.selectedFilters.push(f);
+                filterMarkers();
+            } else {
+                //adding this as a toggle, if it's alreay there - remove it
+                self.removeFilter(el);
+            }
+
+            //alert(self.selectedFilters());
+
+        };
+
+        self.removeFilter = function(el) {
+            //el is the checkbox that was clicked
+            var fv = $(el).attr("filtervalue");
+            var col = $(el).attr("columnname");
+            self.selectedFilters.remove(function(item) { return (item.filtervalue == fv) && (item.columnname==col); });
+            filterMarkers();
+        };
+
+        self.filterIsSelected = function(col, val) {
+            //check each of the selected filters to see if this item is currently selected
+            var exists = false;
+            $.each(self.selectedFilters(), function(j, item) {
+                if ((item.columnname==col) && (item.filtervalue==val)) {
+                    exists = true;
+                }
+            });
+            return exists;
+        };
+
+        self.searchList = dataset.map(function(x) {
+            return { "label": x.site_id + " - " +  x.address + " " +x.city + ", " + x.state + " " + x.zip,"value": x.site_id,"site_id": x.site_id, "address": x.street + "<br />" + x.city + ", " + x.state + " " + x.zip, "state": x.state, "zip" : x.zip };
+        });
+
+        self.findSingleSite = function(site_id) {
+            filteredDataset = dataset.filter(function(item) {
+                return item.site_id == site_id;
+            });
+
+            //now rebind markers
+            setupMarkers();
+            mc.redraw();
+
+            google.maps.event.trigger(markerArray[0], 'click', {});
+
+
+        };
+
+
+    };
+ 
+    function getIcon(val) {
+        //get the icon for the specific filter value
+        var idx = vm.activeFilterValues().indexOf(val);
+        //alert(val);
+        //var idx = 1;
+        var color = "";
+
+        if (idx == -1) {
+            color =  colors[9];
+        } else {
+            color = colors[idx];
+        }
+
+        return "//chart.googleapis.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2%7C" + color + "|000000";
+    }
+
+    function getCurrentGroupIndex(val) {
+        //get the icon for the specific filter value
+        var idx = vm.activeFilterValues().indexOf(val);
+        if (idx == -1) {
+            return colors.length-1;
+        } else {
+            return idx;
+        }
+    }
+
+
+
+    var vm = new ViewModel();
+
+    ko.applyBindings(vm);
+    createMap();
+    setupMarkers();
+    vm.setFilterOptions();
+
+
+
+
+
+    </script>
+
+    <script>
+        $(function() {
+
+            $("#srchBox").autocomplete({
+                minLength: 0,
+                source: vm.searchList,
+                focus: function(event, ui) {
+                    $("#srchBox").val(ui.item.site_id);
+                    return false;
+                },
+                select: function(event, ui) {
+                    $("#srchBox").val(ui.item.site_id);
+
+                    vm.findSingleSite(ui.item.site_id);
+
+                    //$( "#project-id" ).val( ui.item.value );
+                    //$( "#project-description" ).html( ui.item.desc );
+                    //$( "#project-icon" ).attr( "src", "images/" + ui.item.icon );
+                    return false;
+                }
+
+            }).autocomplete("instance")._renderItem = function( ul, item ) {
+                return $( "<li>" )
+                    .append( "<a>" + item.site_id + "<br />" + item.city + ", " + item.state + " " + item.zip + "</a>" )
+                    .appendTo( ul );
+            };
+
+
+        });
+    </script>
+
+
+
+
+</div>

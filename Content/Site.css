@@ -1,0 +1,49 @@
+﻿html {
+    background-color: #ffffff;
+}
+
+body {
+    background-color: #ffffff;
+}
+
+footer {
+    margin-top: 30px;
+}
+
+#mapviewswitcher {
+    /*position:relative; 
+    top:30px; 
+    left:30px; 
+    z-index: 10;
+    margin: 0 auto;*/
+}
+
+.filter-form-wrap {
+    padding: 0px 10px 5px 10px;
+    background-color: #333;
+    color: #ffffff;
+}
+
+.ui-autocomplete {
+            max-height: 400px;
+            max-width: 328px;
+            overflow-y: hidden;
+            /* prevent horizontal scrollbar */
+            overflow-x: hidden;
+        }
+/* IE 6 doesn't support max-height
+* we use height instead, but this forces the menu to always be this tall
+*/
+* html .ui-autocomplete {
+    height: 350px;
+}
+
+
+.ui-widget {
+    font-size: 11px;
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    color: #333333;
+}
+
+
+

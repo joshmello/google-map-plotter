@@ -1,0 +1,166 @@
+﻿@using FSGEMappingTool.Models.Domain
+@model FSGEMappingTool.Models.Views.ClientDatasetConfigEdit
+@{
+    ViewBag.Title = "Dataset Configuration";
+}
+
+<h2>Client Dataset Configuration</h2>
+
+<div class="pull-right" style="margin-top:-40px; margin-bottom:10px;">
+    <a class="btn btn-primary" target="_blank" href="/map/@Model.ClientId/preview"><span class="glyphicon glyphicon-globe"></span>&nbsp;Preview Map</a>
+</div>
+
+@*<div class="alert alert-info">
+    <strong>Please Note:</strong> Help info will go here.
+</div>*@
+
+
+
+@*@using (Html.BeginForm("DatasetConfig", "Client", FormMethod.Post, new Dictionary<string, object> {{"class", "form-inline"}}))*@
+@using (Html.BeginForm("DatasetConfig", "Client", FormMethod.Post, new Dictionary<string, object> { }))
+{
+    
+   if(Model.GetInvalidColumnConfigs().Count>0)
+    {
+     
+       <div class="panel panel-danger">
+        <div class="panel-heading">
+            Invalid Column Configurations
+        </div>
+           <div class="panel-body">
+               <p>These column were previously configured and are no longer in the client's dataset. They are displayed to help you move the configuration data to a new field below (if the field was renamed). These column configs will remain in the dataset until you click the save button below. Once you save this dataset configuration again, they will be deleted.</p>
+
+               <div class="table-responsive">
+                   <table class="table table-striped table-hover table-bordered table-condensed">
+                       <thead>
+                           <tr>
+                               <td style="width:70px">Order</td>
+                               <td>DB Column</td>
+                               <td>Display Name</td>
+                               <td>Format String</td>
+                               <td>Display?</td>
+                               <td>Filter?</td>
+                           </tr>
+                       </thead>
+                       <tbody>
+                           @if (Model.ColumnConfigs != null)
+                           {
+                               foreach (ClientColumnConfig config in Model.GetInvalidColumnConfigs().OrderBy(i => i.OrderIndex))
+                               {
+                                   <tr>
+                                       <td>@config.OrderIndex</td>
+                                       <td>@config.DBColumnName</td>
+                                       <td>@config.DisplayName</td>
+                                       <td>@config.FormatString</td>
+                                       <td>@config.IsDisplayed</td>
+                                       <td>@config.IsFilter</td>
+                                   </tr>
+                               }
+                           }
+                       </tbody>
+                   </table>
+               </div>
+
+           </div>
+    </div> 
+          
+    }
+    
+    
+    
+    @*<h3>Configured Columns</h3>*@
+
+    <div class="panel panel-success">
+        <div class="panel-heading">
+            Configured Columns
+        </div>
+        <div class="panel-body">
+            <p>Note: To remove a configured column, ensure the Dislay? and Filter? checkbox are not checked and save the configuration.</p>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover table-bordered table-condensed">
+                    <thead>
+                        <tr>
+                            <td style="width:70px">Order</td>
+                            <td>DB Column</td>
+                            <td>Display Name</td>
+                            <td>Format String</td>
+                            <td>Display?</td>
+                            <td>Filter?</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.ColumnConfigs != null)
+                        {
+                            foreach (ClientColumnConfig config in Model.GetValidColumnConfigs().OrderBy(i => i.OrderIndex))
+                            {
+                                <tr>
+                                    <td><input type="text" class="form-control" value="@config.OrderIndex" name="idx_@config.DBColumnName" /></td>
+                                    <td>@config.DBColumnName <input type="hidden" name="column_@config.DBColumnName" /></td>
+                                    <td><input type="text" class="form-control" value="@config.DisplayName" name="display_@config.DBColumnName" /></td>
+                                    <td><input type="text" class="form-control" value="@config.FormatString" name="format_@config.DBColumnName" /></td>
+                                    <td><input type="checkbox" checked="@config.IsDisplayed" name="isdisplay_@config.DBColumnName" /></td>
+                                    <td><input type="checkbox" checked="@config.IsFilter" name="isfilter_@config.DBColumnName" /></td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+    
+    
+    
+    
+
+    @*<h3>Unconfigured Columns</h3>*@
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            Unconfigured Columns 
+        </div>
+        <div class="panel-body">
+            <p>These are Columns in the client dataset that were not previously chosen for display or filter, or have been recently added to the database.</p>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover table-bordered table-condensed">
+                    <thead>
+                        <tr>
+                            <td style="width:60px;">Order</td>
+                            <td>DB Column</td>
+                            <td>Display Name</td>
+                            <td>Format String</td>
+                            <td>Display?</td>
+                            <td>Filter?</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.DBColumnNames != null)
+                        {
+                            foreach (DBColumn col in Model.GetUnconfiguredColumns().OrderBy(i => i.ColumnName))
+                            {
+                                <tr>
+                                    <td><input type="text" class="form-control" name="idx_@col.ColumnName" /></td>
+                                    <td>@col.ColumnName<input type="hidden" name="column_@col.ColumnName" /></td>
+                                    <td><input type="text" class="form-control" name="display_@col.ColumnName" /></td>
+                                    <td><input type="text" class="form-control" name="format_@col.ColumnName" /></td>
+                                    <td><div class="checkbox"><input type="checkbox" name="isdisplay_@col.ColumnName" /></div></td>
+                                    <td><div class="checkbox"><input type="checkbox" name="isfilter_@col.ColumnName" /></div></td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+    
+        </div>
+    </div>
+
+    <div class="pull-right">
+                <button type="submit" class="btn btn-success"><span class="glyphicon glyphicon-save"></span>&nbsp;Save</button>
+            </div>
+            <div>
+                <button type="button" class="btn btn-default" onclick="window.history.back()"><span class="glyphicon glyphicon-arrow-left"></span>&nbsp;Cancel</button>
+            </div>
+
+    //end tables
+}

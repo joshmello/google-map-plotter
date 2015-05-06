@@ -1,0 +1,133 @@
+﻿@using FSGEMappingTool.Models.Domain
+@model FSGEMappingTool.Models.Views.ClientKpiView
+@{
+    ViewBag.Title = "Kpis";
+    int limit = Convert.ToInt32(Model.RecordLimit);
+}
+
+<h2>View KPI Data</h2>
+
+<div class="alert alert-info">
+    <strong>Please Note:</strong> This page is meant to allow the admin user to view/verify
+    the data that has been synched with the data stored in the FSGE Databases. If any data changes
+    are needed, the source data must be updated and the sync process must be run again for this client.
+</div>
+
+@using (Html.BeginForm("KPIs", "Client", FormMethod.Get,new Dictionary<string, object>{{"class", "form-inline"}}))
+{
+<div class="panel panel-default">
+    <div class="panel-heading">
+        Select the KPI to easily see the top and bottom ranked sites for each KPI.
+    </div>
+    <div class="panel-body">
+        <span>Selected KPI:</span>  
+        <select name="kpirank" class="form-control">
+            @foreach (Kpi item in Model.Kpis)
+            {
+                if (item.RankPerAreaColumn == Model.SelectedKpiRank)
+                {
+                    <option selected="selected" value="@item.RankPerAreaColumn">@item.KpiName</option>
+                }
+                else
+                {
+                    <option value="@item.RankPerAreaColumn">@item.KpiName</option>    
+                }
+                
+            }
+        </select> 
+        &nbsp;&nbsp;&nbsp;
+        
+        <select name="mode" class="form-control">
+            <option value="raw" @(Model.KPIViewMode=="raw" ? "selected=\"selected\"" : "")>Raw</option>
+            <option value="normalized" @(Model.KPIViewMode == "normalized" ? "selected=\"selected\"" : "")>Normalized</option>
+        </select>
+        &nbsp;&nbsp;&nbsp;
+
+        <span>Record Limit:</span> <input type="text" name="limit" class="form-control" value="@Model.RecordLimit" style="width:100px;" />
+        <button type="submit" class="btn btn-default">Go</button>       
+    </div>
+</div>
+}
+
+<div style="overflow:auto;height:575px;">
+    <table class="table table-striped table-hover table-bordered table-condensed">
+        <thead>
+            <tr>
+                <td>Store ID</td>
+                @foreach (Kpi item in Model.Kpis)
+                {
+                    if (item.RankPerAreaColumn == Model.SelectedKpiRank)
+                    {
+                        <td class="active">@item.KpiName</td>
+                        <td class="active">Rank</td>
+                    }
+                    else
+                    {
+                        <td>@item.KpiName</td>
+                        <td>Rank</td>
+                    }
+
+
+                }
+
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.ClientKpis != null)
+            {
+                int idx = 0;
+                foreach (IDictionary<string, object> row in Model.ClientKpis)
+                {
+                    idx++;
+                    if (idx <= limit)
+                    {
+                        <tr>
+                            <td>@row["site_id"]</td>
+                            @foreach (Kpi item in Model.Kpis)
+                            {
+
+                                if (item.RankPerAreaColumn == Model.SelectedKpiRank)
+                                {
+                                    <td class="success">@Convert.ToDouble(row[item.ValuePerAreaColumn]).ToString("0.##")</td>
+                                    <td class="success">@row[item.RankPerAreaColumn]</td>
+                                }
+                                else
+                                {
+                                    <td>@Convert.ToDouble(row[item.ValuePerAreaColumn]).ToString("0.##")</td>
+                                    <td>@row[item.RankPerAreaColumn]</td>
+                                }
+
+
+
+                            }
+                        </tr>
+
+                    }
+                    else
+                    {
+                        <tr>
+                            <td>@row["site_id"]</td>
+                            @foreach (Kpi item in Model.Kpis)
+                            {
+                                if (item.RankPerAreaColumn == Model.SelectedKpiRank)
+                                {
+                                    <td class="danger">@Convert.ToDouble(row[item.ValuePerAreaColumn]).ToString("0.##")</td>
+                                    <td class="danger">@row[item.RankPerAreaColumn]</td>
+                                }
+                                else
+                                {
+                                    <td>@Convert.ToDouble(row[item.ValuePerAreaColumn]).ToString("0.##")</td>
+                                    <td>@row[item.RankPerAreaColumn]</td>
+                                }
+                            }
+                        </tr>
+                    }
+
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+
+

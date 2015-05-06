@@ -1,0 +1,75 @@
+﻿@model FSGEMappingTool.Models.LoginModel
+
+@{
+    ViewBag.Title = "Log in";
+}
+
+
+@*<h2>@ViewBag.Title.</h2>*@
+
+<section id="loginForm">
+@using (Html.BeginForm(new { ReturnUrl = ViewBag.ReturnUrl })) {
+    @Html.AntiForgeryToken()
+    @Html.ValidationSummary(true)
+
+    <div class="row">
+        <div class="col-md-5 col-md-offset-3">
+            
+            <div class="panel panel-primary" style="margin-top:50px;">
+                <div class="panel-heading">Maps Tool Login</div>
+                <div class="panel-body">
+
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <td width="115">@Html.LabelFor(m => m.UserName)</td>
+                                <td>
+                                    @Html.TextBoxFor(m => m.UserName, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.UserName)
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>@Html.LabelFor(m => m.Password)</td>
+                                <td>
+                                    @Html.PasswordFor(m => m.Password, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.Password)
+                                </td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td>
+                                    <div class="checkbox">
+                                        @Html.CheckBoxFor(m => m.RememberMe, new { @class = "checkbox-inline" })
+                                        @Html.LabelFor(m => m.RememberMe, new { @class = "checkbox" })
+                                    </div>
+                                </td>
+
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td><button type="submit" class="btn btn-success"><span class="glyphicon glyphicon-log-in"></span>&nbsp;Login</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+    
+    @*<p>
+        @Html.ActionLink("Register", "Register") if you don't have an account.
+    </p>*@
+}
+</section>
+
+@*<section class="social" id="socialLoginForm">
+    <h2>Use another service to log in.</h2>
+    @Html.Action("ExternalLoginsList", new { ReturnUrl = ViewBag.ReturnUrl })
+</section>*@
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}

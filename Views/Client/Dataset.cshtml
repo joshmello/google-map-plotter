@@ -1,0 +1,36 @@
+﻿@model FSGEMappingTool.Models.Views.ClientDatasetView
+@using System.Collections
+@using Dapper;
+@using FSGEMappingTool.Models.Domain
+
+@{
+    ViewBag.Title = "Dataset";
+}
+<h2>Client Dataset</h2>
+<div class="alert alert-info"><strong>Please Note:</strong> This page is meant to allow the admin user to view/verify
+    the data that has been synched with the client's google spreadsheet. If any data changes 
+    are needed, the source spreadsheet must be updated and the sync process must be run again for this client. </div>
+
+<div style="overflow:auto;height:575px;">
+    <table class="table table-striped table-hover table-bordered table-condensed">
+        <thead>
+            <tr>
+                @foreach (DBColumn item in Model.DBColumnNames)
+                {
+                    <td>@item.ColumnName</td>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (IDictionary<string, object> row in Model.DataRows)
+            {
+                <tr>
+                    @foreach (var item in Model.DBColumnNames)
+                    {
+                        <td>@row[item.ColumnName]</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
